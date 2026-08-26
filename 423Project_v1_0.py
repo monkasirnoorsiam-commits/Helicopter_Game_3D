@@ -2,8 +2,8 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
-window_height = 800
-window_width = 1000
+window_height = 1000
+window_width = 1200
 text_indent_x = 10
 text_indent_y = 30
 
@@ -11,17 +11,22 @@ map_y_size = 5000
 map_x_size = 1000
 cam_offset_y = 150
 cam_offset_z = 700
+rotor_angle = 0
+helicopter_angle = -90
+helicopter_tilt = 0
+rotor_turn_speed = 4
+player_z = 200
 player_y = 0
 player_x = 0
 ghost_y = 0
-min_player_y = -500
+min_player_y = -400
 max_player_y = 300
 min_player_x = -600
 max_player_x = 600
 camera_pos = [0, -map_y_size + cam_offset_y + player_y, cam_offset_z]
-player_pos = [player_x, -map_y_size + 250 + player_y, 250]
-ghost_pos = [player_x, -map_y_size + 250 + ghost_y, 250]
-camera_lock = [0, -map_y_size + 250 + player_y, 250]
+player_pos = [player_x, -map_y_size + 250 + player_y, player_z]
+ghost_pos = [player_x, -map_y_size + 250 + ghost_y, player_z]
+camera_lock = [0, -map_y_size + 250 + player_y, player_z]
 backup_cam = camera_pos.copy()
 initial_camera_offset = 150
 fovY = 120
@@ -57,31 +62,231 @@ def draw_text(x, y, text, font=GLUT_BITMAP_TIMES_ROMAN_24):
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
 
-def draw_shapes():
+def draw_tree(x, y, z):
     glPushMatrix()
-    glColor3f(1, 0, 0)
-    glTranslatef(0, 0, 0)
-    glutSolidCube(60)
-    glTranslatef(0, 0, 100)
-    glColor3f(0, 1, 0)
-    glutSolidCube(60)
+    glTranslatef(x, y, z)
+    glPushMatrix()
+    glColor3f(0.4, 0.25, 0.1)
+    glTranslatef(0, 0, -45)
+    gluCylinder(gluNewQuadric(), 15, 12, 50, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.2, 0.6, 0.2)
+    glTranslatef(0, 0, 50)
+    gluSphere(gluNewQuadric(), 50, 10, 10)
+    glPopMatrix()
+    glPopMatrix()
 
-    glColor3f(1, 1, 0)
-    glScalef(2, 2, 2)
-    gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)
-    glTranslatef(100, 0, 100)
+def draw_house(x, y, z):
+    glPushMatrix()
+    glTranslatef(x, y, z)
+    glRotatef(90, 1, 0, 0)
+    glScalef(1.25, 1.25, 1.25)
+    glPushMatrix()
+    glColor3f(0.8, 0.7, 0.5)
+    glScalef(200, 150, 120)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.6, 0.3, 0.2)
+    glTranslatef(0, 85, 0)
+    glScalef(220, 40, 140)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.5, 0.25, 0.15)
+    glTranslatef(0, 110, 0)
+    glScalef(180, 30, 100)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.4, 0.25, 0.1)
+    glTranslatef(0, -30, 61)
+    glScalef(40, 70, 5)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.8, 0.7, 0.3)
+    glTranslatef(15, -30, 64)
+    gluSphere(gluNewQuadric(), 5, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.7, 0.85, 0.95)
+    glTranslatef(-60, 20, 61)
+    glScalef(35, 35, 5)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.3, 0.2, 0.1)
+    glTranslatef(-60, 20, 61)
+    glScalef(40, 40, 3)
+    glutWireCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.7, 0.85, 0.95)
+    glTranslatef(60, 20, 61)
+    glScalef(35, 35, 5)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.3, 0.2, 0.1)
+    glTranslatef(60, 20, 61)
+    glScalef(40, 40, 3)
+    glutWireCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.7, 0.4, 0.3)
+    glTranslatef(70, 120, 30)
+    glScalef(25, 50, 25)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.6, 0.35, 0.25)
+    glTranslatef(70, 150, 30)
+    glScalef(30, 10, 30)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.6, 0.5, 0.4)
+    glTranslatef(0, -80, 20)
+    glScalef(80, 10, 60)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.9, 0.85, 0.75)
+    glTranslatef(-35, -60, 50)
+    glScalef(8, 50, 8)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.9, 0.85, 0.75)
+    glTranslatef(35, -60, 50)
+    glScalef(8, 50, 8)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.5, 0.3, 0.2)
+    glTranslatef(0, -25, 60)
+    glScalef(100, 10, 40)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.75, 0.7, 0.6)
+    glTranslatef(150, -50, 0)
+    glScalef(100, 100, 100)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.4, 0.35, 0.3)
+    glTranslatef(150, -50, 51)
+    glScalef(60, 70, 5)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.55, 0.3, 0.2)
+    glTranslatef(150, 15, 0)
+    glScalef(110, 15, 110)
+    glutSolidCube(1)
+    glPopMatrix()
+    glPopMatrix()
+
+def draw_helicopter():
+    global player_pos, rotor_angle
+    quadric = gluNewQuadric()
+    glPushMatrix()
+    glTranslatef(player_pos[0], player_pos[1], player_pos[2])
+    glScalef(0.7, 0.7, 0.7)
+    glRotatef(helicopter_angle, 0, 0, 1)
+    glRotatef(helicopter_tilt, 1, 0, 0)
+    glPushMatrix()
+    glColor3f(0.15, 0.15, 0.18)
+    glTranslatef(0, 0, 120)
+    glScalef(2.2, 1.2, 1.0)
+    gluSphere(quadric, 60, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.1, 0.6, 0.9)
+    glTranslatef(0, -45, 130)
+    glScalef(1.5, 0.8, 0.7)
+    gluSphere(quadric, 45, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.05, 0.4, 0.7)
+    glTranslatef(0, 40, 130)
+    glScalef(1.5, 0.8, 0.7)
+    gluSphere(quadric, 45, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.15, 0.15, 0.18)
+    glTranslatef(110, 0, 135)
     glRotatef(90, 0, 1, 0)
-    gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)
-
-    glColor3f(0, 1, 1)
-    glTranslatef(300, 0, 100)
-    gluSphere(gluNewQuadric(), 80, 10, 10)
-
+    gluCylinder(quadric, 25, 10, 190, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.15, 0.15, 0.18)
+    glTranslatef(300, 0, 135)
+    glScalef(0.5, 0.5, 0.8)
+    gluSphere(quadric, 25, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.1, 0.1, 0.1)
+    glTranslatef(0, 0, 180)
+    gluCylinder(quadric, 8, 8, 30, 10, 10)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.05, 0.05, 0.05)
+    glTranslatef(0, 0, 215)
+    glRotatef(rotor_angle, 0, 0, 1)
+    glPushMatrix()
+    glScalef(4.5, 0.12, 0.08)
+    glutSolidCube(60)
+    glPopMatrix()
+    glPushMatrix()
+    glRotatef(90, 0, 0, 1)
+    glScalef(4.5, 0.12, 0.08)
+    glutSolidCube(60)
+    glPopMatrix()
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.25, 0.25, 0.25)
+    glTranslatef(-25, -55, 60)
+    glScalef(1.8, 0.12, 0.12)
+    glutSolidCube(40)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.25, 0.25, 0.25)
+    glTranslatef(-25, 55, 60)
+    glScalef(1.8, 0.12, 0.12)
+    glutSolidCube(40)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.25, 0.25, 0.25)
+    glTranslatef(-30, -45, 85)
+    glScalef(0.12, 0.12, 0.6)
+    glutSolidCube(40)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.25, 0.25, 0.25)
+    glTranslatef(30, -45, 85)
+    glScalef(0.12, 0.12, 0.6)
+    glutSolidCube(40)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.25, 0.25, 0.25)
+    glTranslatef(-30, 45, 85)
+    glScalef(0.12, 0.12, 0.6)
+    glutSolidCube(40)
+    glPopMatrix()
+    glPushMatrix()
+    glColor3f(0.25, 0.25, 0.25)
+    glTranslatef(30, 45, 85)
+    glScalef(0.12, 0.12, 0.6)
+    glutSolidCube(40)
+    glPopMatrix()
     glPopMatrix()
 
 def keyboardListener(key, x, y):
     global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size, max_player_x, min_player_x, max_player_y, min_player_y
-
     if game:
         if key == b'w':
             if player_y < max_player_y:
@@ -90,7 +295,6 @@ def keyboardListener(key, x, y):
             else:
                 player_y = max_player_y
                 player_pos[1] = max_player_y
-
         if key == b's':
             if player_y > min_player_y:
                 player_y -= player_speed
@@ -98,7 +302,6 @@ def keyboardListener(key, x, y):
             else:
                 player_y = min_player_y
                 player_pos[1] = min_player_y
-
         if key == b'a':
             if player_x > min_player_x:
                 player_x -= player_speed
@@ -106,7 +309,6 @@ def keyboardListener(key, x, y):
             else:
                 player_x = min_player_x
                 player_pos[0] = min_player_x
-
         if key == b'd':
             if player_x < max_player_x:
                 player_x += player_speed
@@ -114,23 +316,18 @@ def keyboardListener(key, x, y):
             else:
                 player_x = max_player_x
                 player_pos[0] = max_player_x
-
         camera_pos = [0, -map_y_size + cam_offset_y + ghost_y, cam_offset_z]
-        camera_lock = [0, -map_y_size + 250 + ghost_y, 250]
-
+        camera_lock = [0, -map_y_size + 250 + ghost_y, player_z]
     if key == b'p':
         if game:
             game = False
         else:
             game = True
-
     if not game:
         if key == b',':
             camera_pos[2] -= cam_speed
-
         if key == b'.':
             camera_pos[2] += cam_speed
-
     glutPostRedisplay()
     # # Reset the game if R key is pressed
     # if key == b'r':
@@ -142,16 +339,12 @@ def specialKeyListener(key, x, y):
     if not game:
         if key == GLUT_KEY_UP:
             y += cam_speed
-
         if key == GLUT_KEY_DOWN:
             y -= cam_speed
-
         if key == GLUT_KEY_LEFT:
             x -= cam_speed
-
         if key == GLUT_KEY_RIGHT:
             x += cam_speed
-
     camera_pos[0] = x
     camera_pos[1] = y
     glutPostRedisplay()
@@ -160,7 +353,6 @@ def mouseListener(button, state, x, y):
     global primary_fire, secondary_fire
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         primary_fire = True
-
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
         secondary_fire = True
 
@@ -230,20 +422,20 @@ def draw_player():
     glPopMatrix()
 
 def idle():
-    global camera_pos, backup_cam, player_y, player_pos, camera_lock, cam_offset_y, cam_offset_z, map_y_size, ghost_y, max_player_y, min_player_y
+    global camera_pos, backup_cam, player_y, player_pos, camera_lock, cam_offset_y, cam_offset_z, map_y_size, ghost_y, max_player_y, min_player_y, rotor_angle
     if game:
         player_y += player_scene_speed
         ghost_y += player_scene_speed
         max_player_y += player_scene_speed
         min_player_y += player_scene_speed
         player_pos[1] = -map_y_size + 250 + player_y
+        rotor_angle += rotor_turn_speed
 
         camera_pos = [0, -map_y_size + cam_offset_y + ghost_y, cam_offset_z]
-        camera_lock = [0, -map_y_size + 250 + ghost_y, 250]
+        camera_lock = [0, -map_y_size + 250 + ghost_y, player_z]
 
     if not game:
         backup_cam = [0, -map_y_size + cam_offset_y + ghost_y, cam_offset_z]
-
     glutPostRedisplay()
 
 def level_1():
@@ -261,8 +453,13 @@ def level_1():
     glVertex3f(map_x_size, 0, 0)
 
     glEnd()
-    draw_shapes()
-    draw_player()
+    draw_house(-500, -2500, 0)
+    draw_tree(-300, -2900, 0)
+    draw_tree(-200, -2100, 0)
+    draw_house(400, -3500, 0)
+    draw_tree(600, -4000, 0)
+    draw_tree(200, -3200, 0)
+    draw_helicopter()
 
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
