@@ -13,8 +13,14 @@ cam_offset_y = 150
 cam_offset_z = 700
 player_y = 0
 player_x = 0
+ghost_y = 0
+min_player_y = -500
+max_player_y = 300
+min_player_x = -600
+max_player_x = 600
 camera_pos = [0, -map_y_size + cam_offset_y + player_y, cam_offset_z]
 player_pos = [player_x, -map_y_size + 250 + player_y, 250]
+ghost_pos = [player_x, -map_y_size + 250 + ghost_y, 250]
 camera_lock = [0, -map_y_size + 250 + player_y, 250]
 backup_cam = camera_pos.copy()
 initial_camera_offset = 150
@@ -25,7 +31,7 @@ zFar = 5000
 GRID_LENGTH = 600
 primary_fire = False
 secondary_fire = False
-player_speed = 5
+player_speed = 10
 cam_speed = 5
 game = True
 game_over = False
@@ -33,7 +39,7 @@ detail = 20
 health = 100
 score = 0
 lives = 5
-player_scene_speed = 0.1
+player_scene_speed = 0.15
 
 def draw_text(x, y, text, font=GLUT_BITMAP_TIMES_ROMAN_24):
     glMatrixMode(GL_PROJECTION)
@@ -74,28 +80,43 @@ def draw_shapes():
     glPopMatrix()
 
 def keyboardListener(key, x, y):
-    global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size
+    global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size, max_player_x, min_player_x, max_player_y, min_player_y
 
     if game:
         if key == b'w':
-            player_y += player_speed
-            player_pos[1] += player_speed
+            if player_y < max_player_y:
+                player_y += player_speed
+                player_pos[1] += player_speed
+            else:
+                player_y = max_player_y
+                player_pos[1] = max_player_y
 
         if key == b's':
-            player_y -= player_speed
-            player_pos[1] -= player_speed
+            if player_y > min_player_y:
+                player_y -= player_speed
+                player_pos[1] -= player_speed
+            else:
+                player_y = min_player_y
+                player_pos[1] = min_player_y
 
         if key == b'a':
-            player_x -= player_speed
-            player_pos[0] -= player_speed
+            if player_x > min_player_x:
+                player_x -= player_speed
+                player_pos[0] -= player_speed
+            else:
+                player_x = min_player_x
+                player_pos[0] = min_player_x
 
         if key == b'd':
-            player_x += player_speed
-            player_pos[0] += player_speed
+            if player_x < max_player_x:
+                player_x += player_speed
+                player_pos[0] += player_speed
+            else:
+                player_x = max_player_x
+                player_pos[0] = max_player_x
 
-        # Update camera to follow player
-        camera_pos = [0, -map_y_size + cam_offset_y + player_y, cam_offset_z]
-        camera_lock = [0, -map_y_size + 250 + player_y, 250]
+        camera_pos = [0, -map_y_size + cam_offset_y + ghost_y, cam_offset_z]
+        camera_lock = [0, -map_y_size + 250 + ghost_y, 250]
 
     if key == b'p':
         if game:
@@ -209,28 +230,23 @@ def draw_player():
     glPopMatrix()
 
 def idle():
-    global camera_pos, backup_cam, player_y, player_pos, camera_lock, cam_offset_y, cam_offset_z, map_y_size
+    global camera_pos, backup_cam, player_y, player_pos, camera_lock, cam_offset_y, cam_offset_z, map_y_size, ghost_y, max_player_y, min_player_y
     if game:
-        # Auto-move player forward
         player_y += player_scene_speed
+        ghost_y += player_scene_speed
+        max_player_y += player_scene_speed
+        min_player_y += player_scene_speed
         player_pos[1] = -map_y_size + 250 + player_y
 
-        # Camera follows player with fixed offset
-        camera_pos = [0, -map_y_size + cam_offset_y + player_y, cam_offset_z]
-        camera_lock = [0, -map_y_size + 250 + player_y, 250]
+        camera_pos = [0, -map_y_size + cam_offset_y + ghost_y, cam_offset_z]
+        camera_lock = [0, -map_y_size + 250 + ghost_y, 250]
 
     if not game:
-        backup_cam = [0, -map_y_size + cam_offset_y + player_y, cam_offset_z]
+        backup_cam = [0, -map_y_size + cam_offset_y + ghost_y, cam_offset_z]
 
     glutPostRedisplay()
 
-def showScreen():
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glLoadIdentity()
-    glViewport(0, 0, window_width, window_height)
-
-    setupCamera()
-
+def level_1():
     glPointSize(20)
     glBegin(GL_POINTS)
     glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
@@ -245,13 +261,36 @@ def showScreen():
     glVertex3f(map_x_size, 0, 0)
 
     glEnd()
+    draw_shapes()
+    draw_player()
+
+def showScreen():
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glLoadIdentity()
+    glViewport(0, 0, window_width, window_height)
+    setupCamera()
+
+    level_1()
+
+    glColor3f(0, 0, 0)
+    draw_text(text_indent_x-2, window_height-text_indent_y-2, f"Health: {health}")
+    draw_text(text_indent_x-2, window_height-2*text_indent_y-2, f"Score: {score}")
+    draw_text(text_indent_x-2, window_height-3*text_indent_y-2, f"Lives: {lives}")
     glColor3f(1, 1, 1)
     draw_text(text_indent_x, window_height-text_indent_y, f"Health: {health}")
     draw_text(text_indent_x, window_height-2*text_indent_y, f"Score: {score}")
     draw_text(text_indent_x, window_height-3*text_indent_y, f"Lives: {lives}")
 
-    draw_shapes()
-    draw_player()
+    if not game:
+        glColor3f(0, 0, 0)
+        draw_text(window_width/2-2, window_height/2-2, f"Pause")
+        glColor3f(1, 1, 1)
+        draw_text(window_width/2, window_height/2, f"Pause")
+    if game_over:
+        glColor3f(0,0,0)
+        text(window_width/2-2, window_height/2-2, f"Game Over!")
+        glColor3f(1,1,1)
+        text(window_width/2, window_height/2, f"Game Over!")
     glutSwapBuffers()
 
 def main():
