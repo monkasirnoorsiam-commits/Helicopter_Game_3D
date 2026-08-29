@@ -211,7 +211,7 @@ def showScreen():
         text(window_width/2, window_height/2, f"Game Over!")
     glutSwapBuffers()
 
-def draw_terrain(x_start, y_start, columns, rows, tile_size, color_range, z):
+def draw_terrain(x_start, y_start, columns, rows, tile_size, color_range, z, misc):
     global tiles
     z_array = []
     backup_z_array = []
@@ -222,16 +222,26 @@ def draw_terrain(x_start, y_start, columns, rows, tile_size, color_range, z):
             r = random.uniform(color_range[0][0], color_range[0][1])
             g = random.uniform(color_range[1][0], color_range[1][1])
             b = random.uniform(color_range[2][0], color_range[2][1])
-            if x == 0 and y == 0:
+            if x == 0 and y == 0 and misc == []:
                 Z1 = random.randint(z[0], z[1])
                 Z2 = random.randint(z[0], z[1])
                 Z3 = random.randint(z[0], z[1])
                 Z4 = random.randint(z[0], z[1])
-            elif y == 0:
+            elif y == 0 and misc == []:
                 Z1 = Z4
                 Z2 = Z3
                 Z3 = random.randint(z[0], z[1])
                 Z4 = random.randint(z[0], z[1])
+            elif x == 0 and y == 0:
+                Z1 = misc[x][0]
+                Z2 = random.randint(z[0], z[1])
+                Z3 = random.randint(z[0], z[1])
+                Z4 = misc[x][1]
+            elif y == 0:
+                Z1 = Z4
+                Z2 = Z3
+                Z3 = random.randint(z[0], z[1])
+                Z4 = misc[x][1]
             elif x == 0:
                 Z1 = backup_z_array[x][0]
                 Z2 = random.randint(z[0], z[1])
@@ -245,6 +255,8 @@ def draw_terrain(x_start, y_start, columns, rows, tile_size, color_range, z):
             z_array.append([Z2, Z3])
             tiles.append([x_start, x, y_start, y, tile_size, r, g, b, Z1, Z2, Z3, Z4])
         backup_z_array = z_array.copy()
+    misc = backup_z_array.copy()
+    return misc
 
 def draw_tiles(tile):
     glBegin(GL_QUADS)
@@ -455,8 +467,8 @@ def main():
     glutInitWindowPosition(0, 0)
     glutCreateWindow(b"Air Strike")
     if current_level == 1:
-        draw_terrain(map_x_size[0], map_y_size[0] - 1000, columns[0], 5, tile_size, [[0.6, 0.7], [0.8, 1], [0, 0]], [-20, 20])
-        draw_terrain(map_x_size[0], map_y_size[0], columns[0], rows[0], tile_size, [[0.6, 0.7], [0.8, 1], [0, 0]], [-20, 20])
+        backup = draw_terrain(map_x_size[0], map_y_size[0] - 1000, columns[0], 5, tile_size, [[0.6, 0.7], [0.8, 1], [0, 0]], [-20, 20], [])
+        hello = draw_terrain(map_x_size[0], map_y_size[0], columns[0], rows[0], tile_size, [[0.6, 0.7], [0.8, 1], [0, 0]], [-20, 20], backup)
     glutDisplayFunc(showScreen)
     glutKeyboardFunc(keyboardListener)
     glutSpecialFunc(specialKeyListener)
