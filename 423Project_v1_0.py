@@ -75,14 +75,12 @@ player_scene_speed = 0.4
 
 # Feature flags & lists
 stealth_mode = False
-bullets = []
+power_level = 1  # 1: Single, 2: Dual, 3: Triple Spread
+bullets = []     # Format: [x, y, z, vx, vy]
 bullet_speed = 30
 
-# TODO: Future Power-ups / Health Gifts placeholders
-power_ups = []  # Format example: [x, y, z, type ('health' or 'power')]
-
 def keyboardListener(key, x, y):
-    global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size, max_player_x, min_player_x, max_player_y, min_player_y, stealth_mode
+    global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size, max_player_x, min_player_x, max_player_y, min_player_y, stealth_mode, power_level
     if game:
         if key == b'w':
             if player_y < max_player_y:
@@ -121,6 +119,9 @@ def keyboardListener(key, x, y):
             game = True
     if key == b't':
         stealth_mode = not stealth_mode
+    if key == b'k' or key == b'K':
+        # Cycle power level from 1 to 3 for testing
+        power_level = (power_level % 3) + 1
     if not game:
         if key == b',':
             camera_pos[2] -= cam_speed
@@ -146,10 +147,26 @@ def specialKeyListener(key, x, y):
     glutPostRedisplay()
 
 def mouseListener(button, state, x, y):
-    global primary_fire, secondary_fire, bullets, player_pos
+    global primary_fire, secondary_fire, bullets, player_pos, power_level
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         primary_fire = True
-        bullets.append([player_pos[0], player_pos[1] + 50, player_pos[2]])
+        px = player_pos[0]
+        py = player_pos[1] + 50
+        pz = player_pos[2]
+        
+        if power_level == 1:
+            # Level 1: Single straight bullet
+            bullets.append([px, py, pz, 0.0, bullet_speed])
+        elif power_level == 2:
+            # Level 2: Dual parallel bullets
+            bullets.append([px - 25, py, pz, 0.0, bullet_speed])
+            bullets.append([px + 25, py, pz, 0.0, bullet_speed])
+        elif power_level >= 3:
+            # Level 3: Triple spread bullets (left angled, straight, right angled)
+            bullets.append([px - 20, py, pz, -4.0, bullet_speed])
+            bullets.append([px, py, pz, 0.0, bullet_speed])
+            bullets.append([px + 20, py, pz, 4.0, bullet_speed])
+            
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
         secondary_fire = True
 
@@ -173,9 +190,11 @@ def idle():
         player_pos[1] = map_y_size[0] + 250 + player_y
         rotor_angle += rotor_turn_speed
 
-        # Update active bullets
+        # Update active bullets (accounting for both vx and vy)
         for b in bullets:
-            b[1] += bullet_speed
+            b[0] += b[3]  # x position += vx
+            b[1] += b[4]  # y position += vy
+            
         # Remove bullets that exceed bounds ahead
         bullets = [b for b in bullets if b[1] < player_pos[1] + 2000]
 
@@ -208,13 +227,6 @@ def draw_bullets():
         
         glPopMatrix()
 
-# ==========================================
-# TODO: FUTURE POWER-UP & HEALTH GIFT DRAWING FUNCTION
-# def draw_power_ups():
-#     global power_ups
-#     ...
-# ==========================================
-
 def level_1():
     draw_tiles(tiles)
     for i in house_positions:
@@ -225,9 +237,6 @@ def level_1():
         draw_tree(i[0], i[1], i[2])
     
     draw_bullets()
-    
-    # TODO: Call future power-up drawing function here
-    # draw_power_ups()
 
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -249,13 +258,15 @@ def showScreen():
     draw_text(text_indent_x-2, window_height-text_indent_y-2, f"Health: {health}")
     draw_text(text_indent_x-2, window_height-2*text_indent_y-2, f"Score: {score}")
     draw_text(text_indent_x-2, window_height-3*text_indent_y-2, f"Lives: {lives}")
-    draw_text(text_indent_x-2, window_height-4*text_indent_y-2, f"Stealth: {stealth_status}")
+    draw_text(text_indent_x-2, window_height-4*text_indent_y-2, f"Power Lvl: {power_level}")
+    draw_text(text_indent_x-2, window_height-5*text_indent_y-2, f"Stealth: {stealth_status}")
 
     glColor3f(1, 1, 1)
     draw_text(text_indent_x, window_height-text_indent_y, f"Health: {health}")
     draw_text(text_indent_x, window_height-2*text_indent_y, f"Score: {score}")
     draw_text(text_indent_x, window_height-3*text_indent_y, f"Lives: {lives}")
-    draw_text(text_indent_x, window_height-4*text_indent_y, f"Stealth: {stealth_status}")
+    draw_text(text_indent_x, window_height-4*text_indent_y, f"Power Lvl: {power_level}")
+    draw_text(text_indent_x, window_height-5*text_indent_y, f"Stealth: {stealth_status}")
 
     if not game:
         glColor3f(0, 0, 0)
@@ -494,7 +505,6 @@ def draw_helicopter():
     glutSolidCube(60)
     glPopMatrix()
     glPopMatrix()
-    
     
     glPushMatrix()
     heli_color(0.25, 0.25, 0.25)
