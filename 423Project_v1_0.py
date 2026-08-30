@@ -73,8 +73,16 @@ score = 0
 lives = 5
 player_scene_speed = 0.4
 
+# Feature flags & lists
+stealth_mode = False
+bullets = []
+bullet_speed = 30
+
+# TODO: Future Power-ups / Health Gifts placeholders
+power_ups = []  # Format example: [x, y, z, type ('health' or 'power')]
+
 def keyboardListener(key, x, y):
-    global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size, max_player_x, min_player_x, max_player_y, min_player_y
+    global player_pos, game, camera_pos, cam_speed, player_x, player_y, camera_lock, cam_offset_y, cam_offset_z, map_y_size, max_player_x, min_player_x, max_player_y, min_player_y, stealth_mode
     if game:
         if key == b'w':
             if player_y < max_player_y:
@@ -111,14 +119,14 @@ def keyboardListener(key, x, y):
             game = False
         else:
             game = True
+    if key == b't':
+        stealth_mode = not stealth_mode
     if not game:
         if key == b',':
             camera_pos[2] -= cam_speed
         if key == b'.':
             camera_pos[2] += cam_speed
     glutPostRedisplay()
-    # # Reset the game if R key is pressed
-    # if key == b'r':
 
 def specialKeyListener(key, x, y):
     global camera_pos, cam_speed
@@ -138,9 +146,10 @@ def specialKeyListener(key, x, y):
     glutPostRedisplay()
 
 def mouseListener(button, state, x, y):
-    global primary_fire, secondary_fire
+    global primary_fire, secondary_fire, bullets, player_pos
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         primary_fire = True
+        bullets.append([player_pos[0], player_pos[1] + 50, player_pos[2]])
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
         secondary_fire = True
 
@@ -155,7 +164,7 @@ def setupCamera():
               0, 0, 1)
 
 def idle():
-    global camera_pos, backup_cam, player_y, player_pos, camera_lock, cam_offset_y, cam_offset_z, map_y_size, ghost_y, max_player_y, min_player_y, rotor_angle
+    global camera_pos, backup_cam, player_y, player_pos, camera_lock, cam_offset_y, cam_offset_z, map_y_size, ghost_y, max_player_y, min_player_y, rotor_angle, bullets
     if game:
         player_y += player_scene_speed
         ghost_y += player_scene_speed
@@ -164,12 +173,47 @@ def idle():
         player_pos[1] = map_y_size[0] + 250 + player_y
         rotor_angle += rotor_turn_speed
 
+        # Update active bullets
+        for b in bullets:
+            b[1] += bullet_speed
+        # Remove bullets that exceed bounds ahead
+        bullets = [b for b in bullets if b[1] < player_pos[1] + 2000]
+
         camera_pos = [0, map_y_size[0] + cam_offset_y + ghost_y, cam_offset_z]
         camera_lock = [0, map_y_size[0] + 250 + ghost_y, player_z]
 
     if not game:
         backup_cam = [0, map_y_size[0] + cam_offset_y + ghost_y, cam_offset_z]
     glutPostRedisplay()
+
+def draw_bullets():
+    global bullets
+    quadric = gluNewQuadric()
+    for b in bullets:
+        glPushMatrix()
+        glTranslatef(b[0], b[1], b[2])
+        # Rotate cylinder to point forward along the Y-axis
+        glRotatef(90, 1, 0, 0)
+        
+        # Rocket Body (Cylinder)
+        glColor3f(1.0, 0.3, 0.1)  # Fiery orange-red
+        gluCylinder(quadric, 4, 4, 30, 8, 8)
+        
+        # Rocket Tip (Cone)
+        glPushMatrix()
+        glTranslatef(0, 0, 30)
+        glColor3f(1.0, 1.0, 0.2)  # Bright yellow tip
+        gluCylinder(quadric, 4, 0.5, 12, 8, 8)
+        glPopMatrix()
+        
+        glPopMatrix()
+
+# ==========================================
+# TODO: FUTURE POWER-UP & HEALTH GIFT DRAWING FUNCTION
+# def draw_power_ups():
+#     global power_ups
+#     ...
+# ==========================================
 
 def level_1():
     draw_tiles(tiles)
@@ -179,6 +223,11 @@ def level_1():
         draw_garage(i[0], i[1], i[2])
     for i in tree_positions:
         draw_tree(i[0], i[1], i[2])
+    
+    draw_bullets()
+    
+    # TODO: Call future power-up drawing function here
+    # draw_power_ups()
 
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -190,14 +239,23 @@ def showScreen():
         level_1()
 
     draw_helicopter()
+
+    if stealth_mode:
+        stealth_status = "ON"
+    else:
+        stealth_status = "OFF"
+
     glColor3f(0, 0, 0)
     draw_text(text_indent_x-2, window_height-text_indent_y-2, f"Health: {health}")
     draw_text(text_indent_x-2, window_height-2*text_indent_y-2, f"Score: {score}")
     draw_text(text_indent_x-2, window_height-3*text_indent_y-2, f"Lives: {lives}")
+    draw_text(text_indent_x-2, window_height-4*text_indent_y-2, f"Stealth: {stealth_status}")
+
     glColor3f(1, 1, 1)
     draw_text(text_indent_x, window_height-text_indent_y, f"Health: {health}")
     draw_text(text_indent_x, window_height-2*text_indent_y, f"Score: {score}")
     draw_text(text_indent_x, window_height-3*text_indent_y, f"Lives: {lives}")
+    draw_text(text_indent_x, window_height-4*text_indent_y, f"Stealth: {stealth_status}")
 
     if not game:
         glColor3f(0, 0, 0)
@@ -206,9 +264,9 @@ def showScreen():
         draw_text(window_width/2, window_height/2, f"Pause")
     if game_over:
         glColor3f(0,0,0)
-        text(window_width/2-2, window_height/2-2, f"Game Over!")
+        draw_text(window_width/2-2, window_height/2-2, f"Game Over!")
         glColor3f(1,1,1)
-        text(window_width/2, window_height/2, f"Game Over!")
+        draw_text(window_width/2, window_height/2, f"Game Over!")
     glutSwapBuffers()
 
 def draw_terrain(x_start, y_start, columns, rows, tile_size, color_range, z, misc):
@@ -366,50 +424,64 @@ def draw_house(x, y, z):
     glPopMatrix()
 
 def draw_helicopter():
-    global player_pos, rotor_angle
+    global player_pos, rotor_angle, stealth_mode
     quadric = gluNewQuadric()
+    
+    def heli_color(r, g, b):
+        if stealth_mode:
+            glColor3f(0.8, 0.9, 1.0)
+        else:
+            glColor3f(r, g, b)
+
     glPushMatrix()
     glTranslatef(player_pos[0], player_pos[1], player_pos[2])
     glScalef(0.7, 0.7, 0.7)
     glRotatef(helicopter_angle, 0, 0, 1)
     glRotatef(helicopter_tilt, 1, 0, 0)
+    
     glPushMatrix()
-    glColor3f(0.15, 0.15, 0.18)
+    heli_color(0.15, 0.15, 0.18)
     glTranslatef(0, 0, 120)
     glScalef(2.2, 1.2, 1.0)
     gluSphere(quadric, 60, 10, 10)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.1, 0.6, 0.9)
+    heli_color(0.1, 0.6, 0.9)
     glTranslatef(0, -45, 130)
     glScalef(1.5, 0.8, 0.7)
     gluSphere(quadric, 45, 10, 10)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.05, 0.4, 0.7)
+    heli_color(0.05, 0.4, 0.7)
     glTranslatef(0, 40, 130)
     glScalef(1.5, 0.8, 0.7)
     gluSphere(quadric, 45, 10, 10)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.15, 0.15, 0.18)
+    heli_color(0.15, 0.15, 0.18)
     glTranslatef(110, 0, 135)
     glRotatef(90, 0, 1, 0)
     gluCylinder(quadric, 25, 10, 190, 10, 10)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.15, 0.15, 0.18)
+    heli_color(0.15, 0.15, 0.18)
     glTranslatef(300, 0, 135)
     glScalef(0.5, 0.5, 0.8)
     gluSphere(quadric, 25, 10, 10)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.1, 0.1, 0.1)
+    heli_color(0.1, 0.1, 0.1)
     glTranslatef(0, 0, 180)
     gluCylinder(quadric, 8, 8, 30, 10, 10)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.05, 0.05, 0.05)
+    heli_color(0.05, 0.05, 0.05)
     glTranslatef(0, 0, 215)
     glRotatef(rotor_angle, 0, 0, 1)
     glPushMatrix()
@@ -422,42 +494,51 @@ def draw_helicopter():
     glutSolidCube(60)
     glPopMatrix()
     glPopMatrix()
+    
+    skid_color = (0.25, 0.25, 0.25)
+    
     glPushMatrix()
-    glColor3f(0.25, 0.25, 0.25)
+    heli_color(*skid_color)
     glTranslatef(-25, -55, 60)
     glScalef(1.8, 0.12, 0.12)
     glutSolidCube(40)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.25, 0.25, 0.25)
+    heli_color(*skid_color)
     glTranslatef(-25, 55, 60)
     glScalef(1.8, 0.12, 0.12)
     glutSolidCube(40)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.25, 0.25, 0.25)
+    heli_color(*skid_color)
     glTranslatef(-30, -45, 85)
     glScalef(0.12, 0.12, 0.6)
     glutSolidCube(40)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.25, 0.25, 0.25)
+    heli_color(*skid_color)
     glTranslatef(30, -45, 85)
     glScalef(0.12, 0.12, 0.6)
     glutSolidCube(40)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.25, 0.25, 0.25)
+    heli_color(*skid_color)
     glTranslatef(-30, 45, 85)
     glScalef(0.12, 0.12, 0.6)
     glutSolidCube(40)
     glPopMatrix()
+    
     glPushMatrix()
-    glColor3f(0.25, 0.25, 0.25)
+    heli_color(*skid_color)
     glTranslatef(30, 45, 85)
     glScalef(0.12, 0.12, 0.6)
     glutSolidCube(40)
     glPopMatrix()
+    
     glPopMatrix()
 
 def main():
